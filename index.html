@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edinburgh Quest 🏴 — 360-Day Software Engineering Journey</title>
+  <meta name="description" content="A gamified 360-day software engineering RPG. Complete daily missions, level up your skills, and land your first tech role in Edinburgh.">
+  <meta name="theme-color" content="#050816">
+
+  <!-- Favicon (emoji) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏴</text></svg>">
+
+  <!-- Preconnect for Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- App root — JS renders into this -->
+  <div id="app">
+    <!-- Loading screen shown before JS hydrates -->
+    <div class="boot-screen" id="boot-screen">
+      <div class="boot-content">
+        <div class="boot-logo">🏴</div>
+        <div class="boot-title">Edinburgh Quest</div>
+        <div class="boot-subtitle">Loading your journey...</div>
+        <div class="boot-bar">
+          <div class="boot-bar-fill" id="boot-fill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Boot screen styles (self-contained, no FOUC) -->
+  <style>
+    .boot-screen {
+      position: fixed;
+      inset: 0;
+      background: #050816;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+    .boot-content { text-align: center; }
+    .boot-logo {
+      font-size: 5rem;
+      display: block;
+      margin-bottom: 1rem;
+      animation: bootFloat 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 20px rgba(251,211,141,0.6));
+    }
+    @keyframes bootFloat {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+    .boot-title {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #63b3ed, #9f7aea);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.25rem;
+    }
+    .boot-subtitle {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.85rem;
+      color: #718096;
+      margin-bottom: 1.5rem;
+    }
+    .boot-bar {
+      width: 200px;
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .boot-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3182ce, #9f7aea);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 8px rgba(99,179,237,0.5);
+    }
+  </style>
+
+  <!-- Module entry point -->
+  <script type="module">
+    // Animate boot bar
+    const fill = document.getElementById('boot-fill');
+    const steps = [10, 35, 60, 85, 100];
+    let i = 0;
+    const advance = () => {
+      if (i < steps.length) {
+        fill.style.width = steps[i++] + '%';
+        setTimeout(advance, 200);
+      }
+    };
+    advance();
+
+    // Import and init app
+    import('./js/app.js').then(() => {
+      // Fade out boot screen
+      setTimeout(() => {
+        const boot = document.getElementById('boot-screen');
+        if (boot) {
+          boot.style.opacity = '0';
+          setTimeout(() => boot.remove(), 500);
+        }
+      }, 800);
+    }).catch(err => {
+      console.error('Edinburgh Quest failed to load:', err);
+      document.getElementById('boot-screen').innerHTML = `
+        <div style="text-align:center; padding: 2rem; color: #fc8181; font-family: sans-serif">
+          <div style="font-size:2rem; margin-bottom:1rem">⚠️</div>
+          <h2 style="margin-bottom:0.5rem">Failed to load</h2>
+          <p style="color:#718096; font-size:0.875rem">Open this file via a local server, not directly from the filesystem.</p>
+          <p style="color:#718096; font-size:0.78rem; margin-top:0.5rem">Try: <code style="background:#1a202c; padding:0.2rem 0.4rem; border-radius:4px">python -m http.server 8080</code></p>
+        </div>`;
+    });
+  </script>
+</body>
+</html>

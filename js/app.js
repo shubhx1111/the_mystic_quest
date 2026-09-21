@@ -143,17 +143,42 @@ function renderShell(state) {
 
 // ── Routes ───────────────────────────────────────────
 function registerRoutes() {
-  registerRoute('dashboard', () => { setPageTitle('Dashboard'); renderDashboard(); });
-  registerRoute('quest-map', () => { setPageTitle('Quest Map'); renderQuestMap(); });
-  registerRoute('learn', (p) => { setPageTitle('Learn'); renderLearn(p); });
-  registerRoute('mission', (p) => { setPageTitle('Mission'); renderMission(p); });
-  registerRoute('coding-arena', (p) => { setPageTitle('Coding Arena'); renderCodingArena(p); });
-  registerRoute('projects', () => { setPageTitle('Projects'); renderProjects(); });
-  registerRoute('skills', () => { setPageTitle('Skills'); renderSkills(); });
-  registerRoute('career', (p) => { setPageTitle('Career'); renderCareer(p); });
-  registerRoute('achievements', () => { setPageTitle('Achievements'); renderAchievements(); });
-  registerRoute('reminders', () => { setPageTitle('Reminders'); renderReminders(); });
-  registerRoute('settings', () => { setPageTitle('Settings'); renderSettings(); });
+  registerRoute('dashboard', (p) => safeRender('Dashboard', renderDashboard, p));
+  registerRoute('quest-map', (p) => safeRender('Quest Map', renderQuestMap, p));
+  registerRoute('learn', (p) => safeRender('Learn', renderLearn, p));
+  registerRoute('mission', (p) => safeRender('Mission', renderMission, p));
+  registerRoute('coding-arena', (p) => safeRender('Coding Arena', renderCodingArena, p));
+  registerRoute('projects', (p) => safeRender('Projects', renderProjects, p));
+  registerRoute('skills', (p) => safeRender('Skills', renderSkills, p));
+  registerRoute('career', (p) => safeRender('Career', renderCareer, p));
+  registerRoute('achievements', (p) => safeRender('Achievements', renderAchievements, p));
+  registerRoute('reminders', (p) => safeRender('Reminders', renderReminders, p));
+  registerRoute('settings', (p) => safeRender('Settings', renderSettings, p));
+}
+
+function safeRender(title, renderFn, params) {
+  setPageTitle(title);
+  // Auto-close sidebar on mobile navigation
+  document.getElementById('sidebar')?.classList.remove('sidebar-open');
+  try {
+    renderFn(params);
+  } catch (err) {
+    console.error(`Error rendering view [${title}]:`, err);
+    const container = document.getElementById('view-container');
+    if (container) {
+      container.innerHTML = `
+        <div class="glass-card" style="text-align:center; padding: 3rem 1.5rem; max-width: 500px; margin: 2rem auto;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Something went wrong while loading this page</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Don't worry, your progress is safe.</p>
+          <div style="display: flex; gap: 0.75rem; justify-content: center;">
+            <button class="btn btn-primary" onclick="window.location.reload()">Try Again ↺</button>
+            <button class="btn btn-ghost" onclick="window.location.hash='dashboard'">Go to Dashboard</button>
+          </div>
+        </div>
+      `;
+    }
+  }
 }
 
 function setPageTitle(page) {

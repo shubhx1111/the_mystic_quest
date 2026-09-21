@@ -26,8 +26,7 @@ export function renderMission(params) {
   const level = LEVELS[levelNum - 1];
 
   currentHintsRevealed = 0;
-  quizAnswers = {};
-  quizSubmitted = false;
+  initQuizState(mission, levelNum, day, mData);
 
   const container = document.getElementById('view-container');
   container.innerHTML = `
@@ -257,8 +256,32 @@ function renderStep3(mission) {
 }
 
 // ─── STEP 4: QUIZ ────────────────────────────────────
-function renderStep4(mission) {
-  const questions = mission.quiz || [];
+let activeQuizState = {
+  levelNum: null,
+  day: null,
+  questions: [],
+  currentIndex: 0,
+  selectedOption: null,
+  submittedAnswers: {},
+  isCompleted: false,
+  score: 0
+};
+
+function initQuizState(mission, levelNum, day, mData) {
+  activeQuizState = {
+    levelNum,
+    day,
+    questions: mission.quiz || [],
+    currentIndex: 0,
+    selectedOption: null,
+    submittedAnswers: {},
+    isCompleted: false,
+    score: mData?.quizScore ?? 0
+  };
+}
+
+function renderStep4(mission, levelNum, day) {
+  const questions = activeQuizState.questions || [];
   if (!questions.length) return `
     <div class="step-panel" id="step-3">
       <div class="step-header"><div class="step-number">STEP 4</div><h2>📝 Quiz</h2></div>
@@ -268,39 +291,127 @@ function renderStep4(mission) {
         <button class="btn btn-primary" onclick="goToStep(4)">Reflect →</button>
       </div>
     </div>`;
+
+  if (activeQuizState.isCompleted) {
+    const total = questions.length;
+    const correctCount = Object.values(activeQuizState.submittedAnswers).filter(a => a.isCorrect).length;
+    const score = activeQuizState.score;
+    return `
+      <div class="step-panel" id="step-3">
+        <div class="step-header">
+          <div class="step-number">STEP 4</div>
+          <h2>📝 Quiz Summary</h2>
+        </div>
+        <div class="quiz-score-panel score-${score >= 80 ? 'high' : score >= 50 ? 'mid' : 'low'}">
+          <div class="score-number">${score}%</div>
+          <div class="score-label">${correctCount} of ${total} Questions Correct</div>
+          <div class="score-msg">${getScoreMessage(score)}</div>
+          ${score < 50 ? '<div class="score-warning">⚠️ REPAIR QUEST recommended — review the concept before moving on.</div>' : ''}
+        </div>
+        <div class="step-footer">
+          <button class="btn btn-ghost" onclick="window.retakeQuiz(${levelNum}, ${day})">↺ Retake Quiz</button>
+          <button class="btn btn-primary" onclick="goToStep(4)">Continue to Reflect →</button>
+        </div>
+      </div>`;
+  }
+
+  const currIndex = activeQuizState.currentIndex;
+  const q = questions[currIndex];
+  const totalQuestions = questions.length;
+  const submittedData = activeQuizState.submittedAnswers[currIndex];
+  const isSubmitted = !!submittedData;
+  const correctCount = Object.values(activeQuizState.submittedAnswers).filter(a => a.isCorrect).length;
+
   return `
     <div class="step-panel" id="step-3">
       <div class="step-header">
         <div class="step-number">STEP 4</div>
         <h2>📝 Quiz</h2>
-        <p class="quiz-intro">${questions.length} questions · Test your understanding</p>
+        <div class="quiz-header-bar">
+          <span class="quiz-progress-text">Question ${currIndex + 1} of ${totalQuestions}</span>
+          <span class="quiz-progress-text" style="color:var(--text-secondary)">Score: ${correctCount}/${totalQuestions}</span>
+        </div>
+        <div class="quiz-progress-track">
+          <div class="quiz-progress-fill" style="width: ${Math.round(((currIndex + 1) / totalQuestions) * 100)}%"></div>
+        </div>
       </div>
-      <div class="quiz-questions" id="quiz-questions">
-        ${questions.map((q, qi) => `
-          <div class="quiz-question" id="qq-${qi}">
-            <div class="q-number">Q${qi + 1}</div>
-            <p class="q-text">${q.question.replace(/\n/g, '<br>')}</p>
-            <div class="q-options">
-              ${q.options.map((opt, oi) => `
-                <button class="q-option" id="opt-${qi}-${oi}" onclick="selectAnswer(${qi}, ${oi}, ${q.correct}, '${escAttr(q.explanation)}')">
-                  <span class="opt-letter">${String.fromCharCode(65 + oi)}</span>
-                  <span>${opt}</span>
-                </button>
-              `).join('')}
+
+      <div class="quiz-question-card">
+        <h3 class="q-question-title">${q.question.replace(/\n/g, '<br>')}</h3>
+
+        <div class="q-options-group" role="radiogroup" aria-label="Question ${currIndex + 1}">
+          ${q.options.map((opt, oi) => {
+            let statusClass = '';
+            let ariaChecked = 'false';
+            let disabledAttr = '';
+            let indicatorIcon = '🔘';
+
+            if (isSubmitted) {
+              disabledAttr = 'disabled';
+              if (oi === q.correct) {
+                statusClass = 'correct';
+                indicatorIcon = '✓';
+                ariaChecked = 'true';
+              } else if (oi === submittedData.chosenOption) {
+                statusClass = 'incorrect';
+                indicatorIcon = '✕';
+                ariaChecked = 'true';
+              }
+            } else {
+              if (oi === activeQuizState.selectedOption) {
+                statusClass = 'selected';
+                indicatorIcon = '●';
+                ariaChecked = 'true';
+              }
+            }
+
+            return `
+              <button type="button"
+                class="q-option-card ${statusClass}"
+                role="radio"
+                aria-checked="${ariaChecked}"
+                ${disabledAttr}
+                onclick="window.selectQuizOption(${oi})"
+                onkeydown="window.handleQuizKeydown(event, ${oi})">
+                <div class="opt-badge">${String.fromCharCode(65 + oi)}</div>
+                <div class="opt-text">${escHtml(opt)}</div>
+                <div class="opt-indicator">${indicatorIcon}</div>
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        ${isSubmitted ? `
+          <div class="q-explanation-box ${submittedData.isCorrect ? 'exp-correct' : 'exp-incorrect'}">
+            <div class="exp-header">
+              ${submittedData.isCorrect ? '<span>✅ Correct!</span>' : '<span>❌ Incorrect</span>'}
             </div>
-            <div class="q-feedback" id="qf-${qi}" style="display:none"></div>
+            <p class="exp-text">${escHtml(q.explanation)}</p>
           </div>
-        `).join('')}
+        ` : ''}
       </div>
-      <div class="quiz-score-panel" id="quiz-score-panel" style="display:none"></div>
+
       <div class="step-footer">
-        <button class="btn btn-ghost" onclick="goToStep(2)">← Back</button>
-        <button class="btn btn-primary" id="submit-quiz-btn" onclick="submitQuiz(${questions.length})" disabled>
-          Submit Quiz
-        </button>
+        <button class="btn btn-ghost" onclick="${currIndex > 0 && !isSubmitted ? `window.prevQuizQuestion(${levelNum}, ${day})` : 'goToStep(2)'}">← ${currIndex > 0 && !isSubmitted ? 'Previous Question' : 'Back to Build'}</button>
+        ${!isSubmitted ? `
+          <button class="btn btn-primary" id="submit-quiz-btn"
+            onclick="window.submitQuizAnswer(${levelNum}, ${day})"
+            ${activeQuizState.selectedOption === null ? 'disabled' : ''}>
+            Submit Answer
+          </button>
+        ` : (currIndex < totalQuestions - 1 ? `
+          <button class="btn btn-primary" onclick="window.nextQuizQuestion(${levelNum}, ${day})">
+            Next Question →
+          </button>
+        ` : `
+          <button class="btn btn-primary" onclick="window.finishQuiz(${levelNum}, ${day})">
+            Complete Quiz →
+          </button>
+        `)}
       </div>
     </div>`;
 }
+
 
 // ─── STEP 5: REFLECT ─────────────────────────────────
 function renderStep5(mission, levelId, day, isLowEnergy) {
@@ -434,64 +545,82 @@ function runCode(editorId, outputPanelId, outputTextId) {
   }
 }
 
-window.selectAnswer = function(qi, oi, correct, explanation) {
-  if (quizSubmitted) return;
-  quizAnswers[qi] = oi;
+function updateStep4UI(levelNum, day) {
+  const mission = getMission(levelNum, day);
+  const step4 = document.getElementById('step-3');
+  if (step4 && mission) {
+    const temp = document.createElement('div');
+    temp.innerHTML = renderStep4(mission, levelNum, day);
+    step4.replaceWith(temp.firstElementChild);
+  }
+}
 
-  document.querySelectorAll(`#qq-${qi} .q-option`).forEach(btn => btn.classList.remove('selected'));
-  document.getElementById(`opt-${qi}-${oi}`).classList.add('selected');
+window.selectQuizOption = function(oi) {
+  const currIndex = activeQuizState.currentIndex;
+  if (activeQuizState.submittedAnswers[currIndex]) return;
 
-  const submitBtn = document.getElementById('submit-quiz-btn');
-  const mission = getMission(getState().currentLevel, getState().currentDay);
-  if (submitBtn && Object.keys(quizAnswers).length >= (mission?.quiz?.length || 1)) {
-    submitBtn.disabled = false;
+  activeQuizState.selectedOption = oi;
+  updateStep4UI(activeQuizState.levelNum, activeQuizState.day);
+};
+
+window.handleQuizKeydown = function(event, oi) {
+  if (event.key === ' ' || event.key === 'Enter') {
+    event.preventDefault();
+    window.selectQuizOption(oi);
   }
 };
 
-window.submitQuiz = function(total) {
-  quizSubmitted = true;
-  const mission = getMission(getState().currentLevel, getState().currentDay);
-  const questions = mission?.quiz || [];
-  let correct = 0;
+window.submitQuizAnswer = function(levelNum, day) {
+  const currIndex = activeQuizState.currentIndex;
+  const chosen = activeQuizState.selectedOption;
+  if (chosen === null || chosen === undefined) return;
+  if (activeQuizState.submittedAnswers[currIndex]) return;
 
-  questions.forEach((q, qi) => {
-    const chosen = quizAnswers[qi];
-    const isCorrect = chosen === q.correct;
-    if (isCorrect) correct++;
+  const q = activeQuizState.questions[currIndex];
+  const isCorrect = chosen === q.correct;
+  activeQuizState.submittedAnswers[currIndex] = { chosenOption: chosen, isCorrect };
 
-    const allOpts = document.querySelectorAll(`#qq-${qi} .q-option`);
-    allOpts.forEach((btn, i) => {
-      btn.classList.remove('selected');
-      if (i === q.correct) btn.classList.add('correct');
-      else if (i === chosen && !isCorrect) btn.classList.add('incorrect');
-      btn.disabled = true;
-    });
+  updateStep4UI(levelNum, day);
+};
 
-    const feedback = document.getElementById(`qf-${qi}`);
-    feedback.style.display = 'block';
-    feedback.className = `q-feedback ${isCorrect ? 'feedback-correct' : 'feedback-incorrect'}`;
-    feedback.innerHTML = `${isCorrect ? '✅ Correct!' : '❌ Not quite.'} ${q.explanation}`;
-  });
-
-  const score = Math.round((correct / total) * 100);
-  const panel = document.getElementById('quiz-score-panel');
-  panel.style.display = 'block';
-  panel.innerHTML = `
-    <div class="quiz-score ${score >= 80 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low'}">
-      <div class="score-number">${score}%</div>
-      <div class="score-label">${correct}/${total} correct</div>
-      <div class="score-msg">${getScoreMessage(score)}</div>
-      ${score < 50 ? '<div class="score-warning">⚠️ REPAIR QUEST recommended — review the concept before moving on.</div>' : ''}
-    </div>`;
-
-  const submitBtn = document.getElementById('submit-quiz-btn');
-  if (submitBtn) {
-    submitBtn.textContent = 'Continue to Reflect →';
-    submitBtn.onclick = () => goToStep(4);
+window.nextQuizQuestion = function(levelNum, day) {
+  if (activeQuizState.currentIndex < activeQuizState.questions.length - 1) {
+    activeQuizState.currentIndex++;
+    const nextSubmitted = activeQuizState.submittedAnswers[activeQuizState.currentIndex];
+    activeQuizState.selectedOption = nextSubmitted ? nextSubmitted.chosenOption : null;
+    updateStep4UI(levelNum, day);
   }
+};
 
-  // Store score temporarily
+window.prevQuizQuestion = function(levelNum, day) {
+  if (activeQuizState.currentIndex > 0) {
+    activeQuizState.currentIndex--;
+    const prevSubmitted = activeQuizState.submittedAnswers[activeQuizState.currentIndex];
+    activeQuizState.selectedOption = prevSubmitted ? prevSubmitted.chosenOption : null;
+    updateStep4UI(levelNum, day);
+  }
+};
+
+window.finishQuiz = function(levelNum, day) {
+  const total = activeQuizState.questions.length;
+  const correctCount = Object.values(activeQuizState.submittedAnswers).filter(a => a.isCorrect).length;
+  const score = total > 0 ? Math.round((correctCount / total) * 100) : 100;
+
+  activeQuizState.score = score;
+  activeQuizState.isCompleted = true;
   window._lastQuizScore = score;
+
+  updateStep4UI(levelNum, day);
+};
+
+window.retakeQuiz = function(levelNum, day) {
+  activeQuizState.currentIndex = 0;
+  activeQuizState.selectedOption = null;
+  activeQuizState.submittedAnswers = {};
+  activeQuizState.isCompleted = false;
+  activeQuizState.score = 0;
+
+  updateStep4UI(levelNum, day);
 };
 
 window.completeMissionFlow = function(levelId, day, isLowEnergy) {

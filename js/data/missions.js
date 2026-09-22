@@ -393,7 +393,98 @@ console.log(levelUp(3, 2));  // 6`,
     subtitle: 'Build a JavaScript Mini-App',
     difficulty: 'Boss', estimatedTime: '3 hours', xp: 200,
     isBoss: true, bossType: 'weekly',
-    bossDescription: 'Combine everything from Days 1–6 to build a real mini application.',
+    bossDescription: 'Combine everything from Days 1–6 to build a real mini application: the Quest Progress Tracker.',
+    concept: {
+      simple: `Welcome to your first Weekly Boss Fight! Over the past 6 days you learned variables, data types, conditions, loops, and functions. Now it's time to assemble these building blocks into a working JavaScript application.`,
+      technical: `This challenge tests state management with objects, mutating properties within functions, conditional logic for level advancement, and automated control flow using loops.`,
+      interview: `"How do you design a stateful mini-app in JavaScript?" → "Define data models using object structures, write pure or mutating helper functions to process state transitions, and drive execution through loops or event listeners."`,
+    },
+    learn: {
+      points: [
+        'Model the application state using an object (name, level, day, xp, streak).',
+        'Create modular functions (completeDay, checkLevelUp) that act on that state.',
+        'Use loops to simulate multiple days of quest progress.',
+        'Log clear, formatted updates using console.log and template literals.',
+      ],
+      codeExample: `const player = { name: "Shubhi", level: 1, currentDay: 7, xp: 1425, streak: 3 };
+
+function completeDay(p) {
+  p.xp += 100;
+  p.currentDay += 1;
+  p.streak += 1;
+  console.log(\`Day \${p.currentDay}: \${p.xp} XP (Streak: \${p.streak})\`);
+}
+
+completeDay(player);`,
+      visual: `[Player State] → [completeDay()] → [Updated State] → [checkLevelUp()] → Output`,
+    },
+    tryIt: {
+      title: 'Target Project Warmup',
+      instruction: 'Create a player object with name, level, currentDay, xp, and streak. Write a function completeDay(player) that adds 100 XP and prints the updated player object.',
+      starterCode: `const player = {\n  name: "Shubhi",\n  level: 1,\n  currentDay: 7,\n  xp: 1425,\n  streak: 3,\n};\n\nfunction completeDay(p) {\n  p.xp += 100;\n  p.currentDay += 1;\n  console.log(\`Completed Day \${p.currentDay}! XP: \${p.xp}\`);\n}\n\ncompleteDay(player);`,
+      expectedOutput: 'Completed Day 8! XP: 1525',
+    },
+    build: {
+      title: 'Quest Progress Tracker',
+      description: `Build a JavaScript program that:
+1. Stores a player object with name, level, currentDay, xp, streak
+2. Has a function \`completeDay(player)\` that adds 100 XP, increments the day, and logs progress
+3. Has a function \`checkLevelUp(player)\` that logs if the player should advance to the next level
+4. Simulates completing 5 days and shows the player's state after each`,
+      starterCode: `// Your player object
+const player = {
+  name: "Shubhi",
+  level: 1,
+  currentDay: 7,
+  xp: 1425,
+  streak: 3,
+};
+
+// completeDay function
+
+// checkLevelUp function
+
+// Simulate 5 days
+for (let i = 0; i < 5; i++) {
+  completeDay(player);
+  checkLevelUp(player);
+}`,
+      hints: [
+        'completeDay should mutate the player object: player.xp += 100, player.currentDay += 1',
+        'checkLevelUp should check if player.currentDay > 30 and if so, increment level and reset day',
+        'Use console.log with template literals for readable output',
+      ],
+      solution: `const player = {
+  name: "Shubhi",
+  level: 1,
+  currentDay: 7,
+  xp: 1425,
+  streak: 3,
+};
+
+function completeDay(p) {
+  p.xp += 100;
+  p.currentDay += 1;
+  p.streak += 1;
+  console.log(\`Day \${p.currentDay} complete! XP: \${p.xp}, Streak: \${p.streak}\`);
+}
+
+function checkLevelUp(p) {
+  if (p.currentDay > 30) {
+    p.level += 1;
+    p.currentDay = 1;
+    console.log(\`🎉 LEVEL UP! You are now Level \${p.level}!\`);
+  } else {
+    console.log(\`Level \${p.level} progress: \${p.currentDay}/30 days.\`);
+  }
+}
+
+console.log("Starting 5-day simulation:");
+for (let i = 0; i < 5; i++) {
+  completeDay(player);
+  checkLevelUp(player);
+}`,
+    },
     challenge: {
       title: 'Quest Progress Tracker',
       description: `Build a JavaScript program that:
@@ -402,12 +493,58 @@ console.log(levelUp(3, 2));  // 6`,
 3. Has a function \`checkLevelUp(player)\` that logs if the player should advance to the next level
 4. Simulates completing 5 days and shows the player's state after each`,
       starterCode: `// Your player object
-const player = {\n  name: "Shubhi",\n  level: 3,\n  currentDay: 17,\n  xp: 4820,\n  streak: 12,\n};\n\n// completeDay function\n\n// checkLevelUp function\n\n// Simulate 5 days\nfor (let i = 0; i < 5; i++) {\n  completeDay(player);\n  checkLevelUp(player);\n}`,
+const player = {
+  name: "Shubhi",
+  level: 1,
+  currentDay: 7,
+  xp: 1425,
+  streak: 3,
+};
+
+// completeDay function
+
+// checkLevelUp function
+
+// Simulate 5 days
+for (let i = 0; i < 5; i++) {
+  completeDay(player);
+  checkLevelUp(player);
+}`,
       hints: [
         'completeDay should mutate the player object: player.xp += 100, player.currentDay += 1',
         'checkLevelUp should check if player.currentDay > 30 and if so, increment level and reset day',
         'Use console.log with template literals for readable output',
       ],
+      solution: `const player = {
+  name: "Shubhi",
+  level: 1,
+  currentDay: 7,
+  xp: 1425,
+  streak: 3,
+};
+
+function completeDay(p) {
+  p.xp += 100;
+  p.currentDay += 1;
+  p.streak += 1;
+  console.log(\`Day \${p.currentDay} complete! XP: \${p.xp}, Streak: \${p.streak}\`);
+}
+
+function checkLevelUp(p) {
+  if (p.currentDay > 30) {
+    p.level += 1;
+    p.currentDay = 1;
+    console.log(\`🎉 LEVEL UP! You are now Level \${p.level}!\`);
+  } else {
+    console.log(\`Level \${p.level} progress: \${p.currentDay}/30 days.\`);
+  }
+}
+
+console.log("Starting 5-day simulation:");
+for (let i = 0; i < 5; i++) {
+  completeDay(player);
+  checkLevelUp(player);
+}`,
     },
     quiz: [
       { id: 'q1', question: 'What is a variable?', options: ['A fixed value that never changes', 'A named memory location storing a value', 'A type of loop', 'A function output'], correct: 1, explanation: 'A variable is a named reference to a value stored in memory. let and const declare variables in modern JS.' },

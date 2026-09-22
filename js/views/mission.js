@@ -87,14 +87,41 @@ export function renderMission(params) {
 
 // ─── STEP 1: LEARN ───────────────────────────────────
 function renderStep1(mission, isLowEnergy) {
-  const c = mission.concept;
-  const l = mission.learn;
+  const c = mission.concept || {
+    simple: mission.bossIntro || mission.bossDescription || mission.subtitle || 'Welcome to this Boss Challenge! Combine all your skills from this level to build the target project.',
+    technical: mission.subtitle || mission.bossDescription || 'Execute the target project according to specifications.',
+    interview: mission.title ? `"Explain ${mission.title}" → Demonstrate practical implementation skills.` : 'Boss Mission'
+  };
+  const l = mission.learn || {
+    points: [
+      mission.bossDescription || 'Review the target project requirements in Step 3.',
+      'Write clean, modular code to solve the challenge.',
+      'Test your code with different inputs to ensure edge cases are handled.',
+      'Complete the quiz and reflection to finish the mission.'
+    ],
+    codeExample: mission.challenge?.starterCode || mission.practicalChallenge?.starterCode || '',
+    visual: mission.challenge?.title ? `⚔️ Target Project: ${mission.challenge.title}` : ''
+  };
+
+  const bossBanner = mission.isBoss ? `
+    <div class="boss-briefing-banner glass-card-inner" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent); padding: 1.25rem;">
+      <h3 style="color: var(--accent); margin-bottom: 0.5rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>⚔️</span> BOSS MISSION BRIEFING
+      </h3>
+      <p style="color: var(--text-primary); font-size: 0.95rem; line-height: 1.6;">
+        ${mission.bossIntro || mission.bossDescription || 'Welcome to the Weekly Boss Fight! Your mission is to build a target project from scratch using the concepts you learned this week.'}
+      </p>
+    </div>
+  ` : '';
+
   return `
     <div class="step-panel" id="step-0">
       <div class="step-header">
         <div class="step-number">STEP 1</div>
-        <h2>📖 Learn</h2>
+        <h2>📖 Learn ${mission.isBoss ? '& Briefing' : ''}</h2>
       </div>
+
+      ${bossBanner}
 
       <!-- 3-Layer Concept -->
       <div class="concept-layers">
@@ -130,7 +157,7 @@ function renderStep1(mission, isLowEnergy) {
       ${l.codeExample ? `
       <div class="code-example-block">
         <div class="code-block-header">
-          <span class="code-label">Code Example</span>
+          <span class="code-label">${mission.isBoss ? 'Target Project Starter Code' : 'Code Example'}</span>
           <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
         </div>
         <pre class="code-block"><code>${escHtml(l.codeExample)}</code></pre>
@@ -156,7 +183,13 @@ function renderStep1(mission, isLowEnergy) {
 
 // ─── STEP 2: TRY ─────────────────────────────────────
 function renderStep2(mission) {
-  const t = mission.tryIt;
+  const t = mission.tryIt || {
+    title: mission.challenge?.title ? `Target Project Specs: ${mission.challenge.title}` : (mission.practicalChallenge?.title ? `Target Project Specs: ${mission.practicalChallenge.title}` : 'Boss Warmup & Specifications'),
+    instruction: mission.challenge?.description || mission.practicalChallenge?.description || mission.bossDescription || 'Review the specifications below before writing code in Step 3.',
+    starterCode: mission.challenge?.starterCode || mission.practicalChallenge?.starterCode || '// Starter code\n',
+    expectedOutput: mission.tryIt?.expectedOutput || ''
+  };
+
   if (!t || !t.instruction) return '<div class="step-panel" id="step-1"><p>No exercise for this mission.</p></div>';
   return `
     <div class="step-panel" id="step-1">
@@ -165,7 +198,7 @@ function renderStep2(mission) {
         <h2>⚡ Try It</h2>
       </div>
       <h3>${t.title}</h3>
-      <p class="instruction-text">${t.instruction}</p>
+      <p class="instruction-text" style="white-space: pre-line;">${t.instruction}</p>
       <div class="code-editor-wrapper">
         <div class="editor-toolbar">
           <span class="editor-lang">JavaScript</span>
@@ -196,23 +229,30 @@ function renderStep2(mission) {
 
 // ─── STEP 3: BUILD ───────────────────────────────────
 function renderStep3(mission) {
-  const b = mission.build;
+  const b = mission.build || mission.challenge || mission.practicalChallenge;
   if (!b) return '<div class="step-panel" id="step-2"><p>No build task.</p></div>';
+
+  const title = b.title || 'Target Project Challenge';
+  const description = (b.description || b.bossDescription || mission.bossDescription || '').replace(/\n/g, '<br>');
+  const starterCode = b.starterCode || '';
+  const hints = b.hints || [];
+  const solution = b.solution || '';
+
   return `
     <div class="step-panel" id="step-2">
       <div class="step-header">
         <div class="step-number">STEP 3</div>
-        <h2>🔨 Build</h2>
+        <h2>🔨 Build${mission.isBoss ? ' (Target Project)' : ''}</h2>
       </div>
-      <h3>${b.title}</h3>
-      <div class="build-description">${b.description.replace(/\n/g, '<br>')}</div>
+      <h3>${title}</h3>
+      <div class="build-description">${description}</div>
 
       <div class="code-editor-wrapper">
         <div class="editor-toolbar">
           <span class="editor-lang">JavaScript</span>
           <button class="btn btn-ghost btn-sm" onclick="resetBuildEditor()">↺ Reset</button>
         </div>
-        <textarea class="code-editor code-editor-large" id="build-editor" spellcheck="false">${b.starterCode || ''}</textarea>
+        <textarea class="code-editor code-editor-large" id="build-editor" spellcheck="false">${starterCode}</textarea>
         <div class="editor-actions">
           <button class="btn btn-primary" onclick="runBuildCode()">▶ Run</button>
         </div>
@@ -226,23 +266,23 @@ function renderStep3(mission) {
       <div class="hint-system">
         <div class="hints-header">
           <span>💡 Hints</span>
-          <span class="hints-used" id="hints-used-label">${currentHintsRevealed}/${b.hints?.length || 0} used</span>
+          <span class="hints-used" id="hints-used-label">${currentHintsRevealed}/${hints.length} used</span>
         </div>
         <div class="hints-list" id="hints-list">
-          ${(b.hints || []).map((h, i) => `
+          ${hints.map((h, i) => `
             <div class="hint-item ${i < currentHintsRevealed ? 'revealed' : 'hidden'}" id="hint-${i}">
               ${i < currentHintsRevealed ? `<span class="hint-number">💡 Hint ${i+1}</span><p>${h}</p>` :
-                `<button class="btn btn-ghost btn-sm" onclick="revealHint(${i}, ${b.hints?.length})">Reveal Hint ${i+1}</button>`}
+                `<button class="btn btn-ghost btn-sm" onclick="revealHint(${i}, ${hints.length})">Reveal Hint ${i+1}</button>`}
             </div>
           `).join('')}
         </div>
-        ${b.solution ? `
-        <button class="btn btn-ghost btn-sm show-solution-btn" id="show-solution-btn" onclick="showSolution('${btoa(encodeURIComponent(b.solution)).substring(0, 20)}')">
+        ${solution ? `
+        <button class="btn btn-ghost btn-sm show-solution-btn" id="show-solution-btn" onclick="showSolution()">
           👁️ Show Solution
         </button>
         <div class="solution-block" id="solution-block" style="display:none">
           <div class="solution-warning">⚠️ Only check after a genuine attempt. Understanding is the goal.</div>
-          <pre class="code-block"><code>${escHtml(b.solution || '')}</code></pre>
+          <pre class="code-block"><code>${escHtml(solution)}</code></pre>
         </div>
         ` : ''}
       </div>
@@ -268,10 +308,23 @@ let activeQuizState = {
 };
 
 function initQuizState(mission, levelNum, day, mData) {
+  let questions = [];
+  if (mission.quiz && mission.quiz.length > 0) {
+    questions = mission.quiz;
+  } else if (mission.knowledgeTest?.questions && mission.knowledgeTest.questions.length > 0) {
+    questions = mission.knowledgeTest.questions.map((q, idx) => ({
+      id: q.id || `k${idx+1}`,
+      question: q.q || q.question,
+      options: q.options,
+      correct: q.correct,
+      explanation: q.explanation || 'Review the concept material for details.'
+    }));
+  }
+
   activeQuizState = {
     levelNum,
     day,
-    questions: mission.quiz || [],
+    questions,
     currentIndex: 0,
     selectedOption: null,
     submittedAnswers: {},
@@ -415,6 +468,7 @@ function renderStep4(mission, levelNum, day) {
 
 // ─── STEP 5: REFLECT ─────────────────────────────────
 function renderStep5(mission, levelId, day, isLowEnergy) {
+  const promptText = mission.reflect?.prompt || mission.reflection?.prompts?.[0] || 'What did you learn today?';
   return `
     <div class="step-panel" id="step-4">
       <div class="step-header">
@@ -422,7 +476,7 @@ function renderStep5(mission, levelId, day, isLowEnergy) {
         <h2>💭 Reflect</h2>
       </div>
       <div class="reflect-prompt">
-        <p class="reflect-question">${mission.reflect?.prompt || 'What did you learn today?'}</p>
+        <p class="reflect-question">${promptText}</p>
         <textarea class="reflect-textarea" id="reflect-input"
           placeholder="Write your thoughts here... (optional but encouraged)">${getMissionData(levelId, day).reflection || ''}</textarea>
       </div>
@@ -430,16 +484,16 @@ function renderStep5(mission, levelId, day, isLowEnergy) {
       <!-- COMPLETION CHECKLIST -->
       <div class="completion-checklist glass-card-inner">
         <h3>Before you complete:</h3>
-        <label class="checklist-item"><input type="checkbox" id="check-learned"> <span>I learned the concept</span></label>
-        <label class="checklist-item"><input type="checkbox" id="check-practiced"> <span>I practiced the exercise</span></label>
-        <label class="checklist-item"><input type="checkbox" id="check-built"> <span>I attempted the build task</span></label>
+        <label class="checklist-item"><input type="checkbox" id="check-learned"> <span>I learned the concept & briefing</span></label>
+        <label class="checklist-item"><input type="checkbox" id="check-practiced"> <span>I practiced the exercise / specifications</span></label>
+        <label class="checklist-item"><input type="checkbox" id="check-built"> <span>I attempted the target project build task</span></label>
         <label class="checklist-item"><input type="checkbox" id="check-quizzed"> <span>I attempted the quiz</span></label>
       </div>
 
       <div class="step-footer">
         <button class="btn btn-ghost" onclick="goToStep(3)">← Back</button>
         <button class="btn btn-complete" id="complete-btn" onclick="completeMissionFlow(${levelId}, ${day}, ${isLowEnergy})">
-          ${isLowEnergy ? '💤 Complete Mini Quest' : '⚔️ Complete Mission'}
+          ${isLowEnergy ? '💤 Complete Mini Quest' : (mission.isBoss ? '⚔️ Complete Boss Mission' : '⚔️ Complete Mission')}
         </button>
       </div>
     </div>`;
@@ -475,7 +529,8 @@ window.goToStep = activateStep;
 
 window.switchLayer = function(type) {
   ['simple', 'technical', 'interview'].forEach(t => {
-    document.getElementById(`layer-${t}-content`).style.display = t === type ? 'block' : 'none';
+    const el = document.getElementById(`layer-${t}-content`);
+    if (el) el.style.display = t === type ? 'block' : 'none';
   });
   document.querySelectorAll('.layer-tab').forEach((btn, i) => {
     btn.classList.toggle('active-tab', ['simple', 'technical', 'interview'][i] === type);
@@ -486,10 +541,14 @@ window.revealHint = function(index, total) {
   currentHintsRevealed = index + 1;
   const hintEl = document.getElementById(`hint-${index}`);
   const mission = getMission(getState().currentLevel, getState().currentDay);
-  const hint = mission?.build?.hints?.[index] || '';
-  hintEl.className = 'hint-item revealed';
-  hintEl.innerHTML = `<span class="hint-number">💡 Hint ${index + 1}</span><p>${hint}</p>`;
-  document.getElementById('hints-used-label').textContent = `${currentHintsRevealed}/${total} used`;
+  const hints = mission?.build?.hints || mission?.challenge?.hints || mission?.practicalChallenge?.hints || [];
+  const hint = hints[index] || '';
+  if (hintEl) {
+    hintEl.className = 'hint-item revealed';
+    hintEl.innerHTML = `<span class="hint-number">💡 Hint ${index + 1}</span><p>${hint}</p>`;
+  }
+  const labelEl = document.getElementById('hints-used-label');
+  if (labelEl) labelEl.textContent = `${currentHintsRevealed}/${total} used`;
 };
 
 window.showSolution = function() {
@@ -508,13 +567,15 @@ window.runBuildCode = function() {
 window.resetTryEditor = function() {
   const mission = getMission(getState().currentLevel, getState().currentDay);
   const el = document.getElementById('try-editor');
-  if (el && mission?.tryIt) el.value = mission.tryIt.starterCode || '';
+  const starter = mission?.tryIt?.starterCode || mission?.challenge?.starterCode || mission?.practicalChallenge?.starterCode || '';
+  if (el) el.value = starter;
 };
 
 window.resetBuildEditor = function() {
   const mission = getMission(getState().currentLevel, getState().currentDay);
   const el = document.getElementById('build-editor');
-  if (el && mission?.build) el.value = mission.build.starterCode || '';
+  const starter = mission?.build?.starterCode || mission?.challenge?.starterCode || mission?.practicalChallenge?.starterCode || '';
+  if (el) el.value = starter;
 };
 
 function runCode(editorId, outputPanelId, outputTextId) {
